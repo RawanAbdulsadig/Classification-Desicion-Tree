@@ -1,0 +1,108 @@
+---
+title: "SCC.461 Final Project"
+author: "Rawan Abdulelsadig - 35324987"
+date: "01/01/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r  message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(gridExtra)
+library(car)
+```
+
+#### Preparing a paired t-test function for statistical comparisions:
+```{r}
+Paired.t.test <- function(x1 , x2){
+   diffs=x1-x2
+   n=length(diffs)
+   
+   t=mean(diffs)/((sd(diffs)/sqrt(n))) # the t-statistic
+   
+   print('Mean difference:') 
+   print(mean(diffs)) # the MLE
+   
+   print('t statistic:')
+   print(t)
+   
+   p = pt(-abs(t) , n - 1, lower.tail = T) # calculating the area under the curve at the t percentile (at the left half)
+   cat('The P-value obtained:', 2*p, '\n')
+   return(2*p)
+}
+```
+
+#### Preparing a function that plots the performance measures against Min.Leaf.Split, performes the t-tests and prints the results:
+```{r}
+StatisticalEvaluations <- function(performance, level = 0.05){
+  for (i in seq(2,17,2)){
+    # making a new dataframe where one column identifies the name of the variable and another specifies the value of the variable
+    # to be able to plot both lines in the same graph
+    per_melted <- reshape2::melt(performance[c(1,i,i+1)], id.var='Min.Leaf.Split')
+    # plot the two raw values 
+    p1 <- ggplot(per_melted, aes(x=Min.Leaf.Split, y=value, col=variable)) +geom_point()+ geom_line(size = 1)
+    # plot two regression lines
+    p2 <- ggplot(per_melted, aes(x=Min.Leaf.Split, y=value, col=variable))+ geom_smooth(method="auto", se=TRUE, fullrange=FALSE,
+                                                                                        level=1-level)
+    grid.arrange(p1, p2, nrow=2) # Plotting the two plots in a grid with 2 rows and 1 column
+    
+    
+    cat(names(performance)[i],'\n') # printing the name of the metric
+    pval <- Paired.t.test(performance[,i],performance[,i+1]) # performing the t-test and getting the P-value
+    cat("Are they significantly different at", level*100, "% level?", "\n")
+    cat(pval < level, '\n\n')  # evaluating the p-value using the significance level
+    }
+  
+}
+```
+
+### First, the case:
+#### Criterion: Gini
+#### Split :  Best Split
+
+```{r}
+per1 <- read.csv('DT-infogain0.0-best-gini-Results.csv')
+per1 = per1[1:100,]
+```
+
+```{r message=FALSE, warning=FALSE}
+StatisticalEvaluations(per1 , level = 0.05)
+```
+
+### Second, the case:
+#### Criterion: Gini
+#### Split :  Random Split
+
+```{r}
+per2 <- read.csv('DT-infogain0.0-random-gini-Results.csv')
+```
+
+```{r message=FALSE, warning=FALSE}
+StatisticalEvaluations(per2 , level = 0.05)
+```
+
+### Third, the case:
+#### Criterion: Entropy
+#### Split :  Best Split
+
+```{r}
+per3 <- read.csv('DT-infogain0.0-best-entropy-Results.csv')
+per3 = per3[1:100,]
+```
+
+```{r message=FALSE, warning=FALSE}
+StatisticalEvaluations(per3 , level = 0.05)
+```
+
+### Forth, the case:
+#### Criterion: Entropy
+#### Split :  Random Split
+
+```{r}
+per4 <- read.csv('DT-infogain0.0-random-entropy-Results.csv')
+```
+
+```{r message=FALSE, warning=FALSE}
+StatisticalEvaluations(per4 , level = 0.05)
+```
